@@ -1,0 +1,3 @@
+#-Dhttps.port=9443
+#-Dsbt.repository.config=project/repositories
+#-Dsbt.override.build.repos=true
