@@ -6,7 +6,7 @@ import slick.jdbc.meta._
 
 import com.theseventhsense.utils.slick.postgres.{APIWithEffectRouting, CustomPostgresDriver, Databases}
 
-class TablesSuite extends FunSuite with BeforeAndAfter with ScalaFutures {
+class TablesSuite extends WordSpec with BeforeAndAfterAll with ScalaFutures {
   implicit override val patienceConfig = PatienceConfig(timeout = Span(5, Seconds))
 
   var dbs: Databases[CustomPostgresDriver] = new Databases(
@@ -20,39 +20,40 @@ class TablesSuite extends FunSuite with BeforeAndAfter with ScalaFutures {
   val suppliers = TableQuery[Suppliers]
   val coffees = TableQuery[Coffees]
 
-  before {
-  }
+  override def beforeAll: Unit =
+    dbs.run((coffees.schema ++ suppliers.schema).dropIfExists).futureValue
 
   def createSchema() =
-    dbs.run((suppliers.schema ++ coffees.schema).createIfNotExists).futureValue
-    dbs.run(coffees.schema.truncate).futureValue
+    dbs.run((coffees.schema ++ suppliers.schema).createIfNotExists).futureValue
+
 
   def insertSupplier(): Int =
     dbs.run(suppliers += (101, "Acme, Inc.", "99 Market Street", "Groundsville", "CA", "95199")).futureValue
 
-  test("Creating the Schema works") {
-    createSchema()
+  "the slick databases" should {
+    "Creating a schema works" in {
+      createSchema()
 
-    val tables = dbs.run(MTable.getTables).futureValue
+      val tables = dbs.run(MTable.getTables).futureValue
 
-    assert(tables.size == 324)
-    assert(tables.count(_.name.name.equalsIgnoreCase("suppliers")) == 1)
-    assert(tables.count(_.name.name.equalsIgnoreCase("coffees")) == 1)
+      assert(tables.size == 324)
+      assert(tables.count(_.name.name.equalsIgnoreCase("suppliers")) == 1)
+      assert(tables.count(_.name.name.equalsIgnoreCase("coffees")) == 1)
+    }
+
+    "Inserting a Supplier works" in {
+      val insertCount = insertSupplier()
+      assert(insertCount == 1)
+    }
+
+    "Query Suppliers works" in {
+      val results = dbs.run(suppliers.result).futureValue
+      assert(results.size == 1)
+      assert(results.head._1 == 101)
+    }
   }
 
-  test("Inserting a Supplier works") {
-    val insertCount = insertSupplier()
-    assert(insertCount == 1)
-  }
-
-  test("Query Suppliers works") {
-    insertSupplier()
-    val results = dbs.run(suppliers.result).futureValue
-    assert(results.size == 1)
-    assert(results.head._1 == 101)
-  }
-
-  after {
+  override def afterAll {
     dbs.close()
   }
 }

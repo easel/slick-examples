@@ -7,7 +7,9 @@ mainClass in Compile := Some("HelloSlick")
 scalaVersion := "2.12.8"
 
 lazy val `slick-examples` = project.in(file("."))
-  .settings(fork in run := true,
+  .settings(
+    fork in run := true,
+    parallelExecution := false,
     libraryDependencies := List(
       "org.scalatest" %% "scalatest" % "3.0.4" % "test"
     ))
